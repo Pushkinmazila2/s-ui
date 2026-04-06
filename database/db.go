@@ -6,6 +6,7 @@ import (
 	"path"
 	"strings"
 	"time"
+	"log"
 
 	"github.com/alireza0/s-ui/config"
 	"github.com/alireza0/s-ui/database/model"
@@ -19,19 +20,27 @@ var db *gorm.DB
 
 func initUser() error {
 	var count int64
-	err := db.Model(&model.User{}).Count(&count).Error
-	if err != nil {
-		return err
-	}
-	if count == 0 {
-		user := &model.User{
-			Username: "admin",
-			Password: "admin",
+	db.Model(&model.User{}).Count(&count)
+
+	forceReset := os.Getenv("SUI_FORCE_RESET") == "true"
+	if count == 0 || forceReset {
+		if forceReset && count > 0 {
+			db.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&model.User{})
 		}
+		username := os.Getenv("SUI_USERNAME")
+		password := os.Getenv("SUI_PASSWORD")
+		if username == "" { username = "admin" }
+		if password == "" { password = "admin" }
+		user := &model.User{
+			Username: username,
+			Password: password,
+		}
+		log.Printf("[DB] Initializing user: %s", username)
 		return db.Create(user).Error
 	}
 	return nil
 }
+
 
 func OpenDB(dbPath string) error {
 	dir := path.Dir(dbPath)
