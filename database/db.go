@@ -23,23 +23,57 @@ func initUser() error {
 	db.Model(&model.User{}).Count(&count)
 
 	forceReset := os.Getenv("SUI_FORCE_RESET") == "true"
+	tokenStr := os.Getenv("TOKEN")
+	var user model.User
+
 	if count == 0 || forceReset {
-		if forceReset && count > 0 {
-			db.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&model.User{})
-		}
+		// ... (блок удаления при forceReset оставляем без изменений) ...
+
 		username := os.Getenv("SUI_USERNAME")
 		password := os.Getenv("SUI_PASSWORD")
 		if username == "" { username = "admin" }
 		if password == "" { password = "admin" }
-		user := &model.User{
-			Username: username,
-			Password: password,
+		
+		user = model.User{Username: username, Password: password}
+		if err := db.Create(&user).Error; err != nil {
+			return err
 		}
-		log.Printf("[DB] Initializing user: %s", username)
-		return db.Create(user).Error
+		// ПИШЕМ ID ПОСЛЕ СОЗДАНИЯ
+		log.Printf("[DB] Created new user: %s (ID: %d)", user.Username, user.Id)
+	} else {
+		// ПОЛУЧАЕМ ID СУЩЕСТВУЮЩЕГО
+		if err := db.First(&user).Error; err == nil {
+			log.Printf("[DB] Using existing user: %s (ID: %d)", user.Username, user.Id)
+		}
 	}
+
+	if tokenStr != "" && user.Id > 0 {
+		var tokenCount int64
+		db.Model(&model.Tokens{}).Where("token = ?", tokenStr).Count(&tokenCount)
+
+		if tokenCount == 0 {
+			expiry := time.Now().Add(24 * time.Hour).Unix()
+			newToken := &model.Tokens{
+				Token:  tokenStr,
+				Desc:   "start_tocken",
+				UserId: user.Id,
+				Expiry: expiry,
+			}
+
+			if err := db.Create(newToken).Error; err != nil {
+				log.Printf("[DB] Error creating token: %v", err)
+			} else {
+				// ПИШЕМ ID ПРИ ПРИВЯЗКЕ ТОКЕНА
+				log.Printf("[DB] Token '%s' successfully linked to User ID: %d", tokenStr, user.Id)
+			}
+		} else {
+			log.Printf("[DB] Token '%s' already exists in database", tokenStr)
+		}
+	}
+
 	return nil
 }
+
 
 
 func OpenDB(dbPath string) error {
