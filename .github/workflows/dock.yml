@@ -1,4 +1,4 @@
-name: Docker Image CI 2
+name: Docker Image CI 22
 on:
   push:
     tags:
@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repository2
         uses: actions/checkout@v6
         with:
           submodules: recursive
@@ -28,6 +28,7 @@ jobs:
           cd frontend
           npm ci
           npm run build
+
       - name: Upload frontend build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -77,6 +78,7 @@ jobs:
             type=ref,event=tag
             type=sha
             type=raw,value=latest
+
       - name: Build and push by digest
         id: build
         uses: docker/build-push-action@v5
@@ -92,6 +94,7 @@ jobs:
           mkdir -p ${{ runner.temp }}/digests
           digest="${{ steps.build.outputs.digest }}"
           echo "${digest#sha256:}" > "${{ runner.temp }}/digests/${digest#sha256:}"
+
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
@@ -129,12 +132,15 @@ jobs:
           tags: |
             type=ref,event=tag
             type=raw,value=latest
+
       - name: Create manifest list and push
         env:
           DOCKER_METADATA_OUTPUT_JSON: ${{ steps.meta.outputs.json }}
         working-directory: ${{ runner.temp }}/digests
         run: |
           set -e
+
           TAGS_ARGS=$(echo "$DOCKER_METADATA_OUTPUT_JSON" | jq -cr '.tags | map("-t " + .) | join(" ")')
           DIGEST_REFS=$(for f in *; do echo -n "${{ env.IMAGE_NAME }}@sha256:$(cat "$f") "; done)
-          docker buildx imagetools create $TAGS_ARGS $DIGEST_REFS
+
+          docker buildx imagetools create $TAGS_ARGS $DIGEST_REF
