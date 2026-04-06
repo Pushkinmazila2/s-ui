@@ -1,4 +1,5 @@
-name: Docker Image CI 22
+name: Docker Image CI
+
 on:
   push:
     tags:
@@ -13,7 +14,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Checkout repository2
+      - name: Checkout repository
         uses: actions/checkout@v6
         with:
           submodules: recursive
@@ -143,4 +144,4 @@ jobs:
           TAGS_ARGS=$(echo "$DOCKER_METADATA_OUTPUT_JSON" | jq -cr '.tags | map("-t " + .) | join(" ")')
           DIGEST_REFS=$(for f in *; do echo -n "${{ env.IMAGE_NAME }}@sha256:$(cat "$f") "; done)
 
-          docker buildx imagetools create $TAGS_ARGS $DIGEST_REF
+          docker buildx imagetools create $TAGS_ARGS $DIGEST_REFS
