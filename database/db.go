@@ -27,8 +27,6 @@ func initUser() error {
 	var user model.User
 
 	if count == 0 || forceReset {
-		// ... (блок удаления при forceReset оставляем без изменений) ...
-
 		username := os.Getenv("SUI_USERNAME")
 		password := os.Getenv("SUI_PASSWORD")
 		if username == "" { username = "admin" }
@@ -38,10 +36,8 @@ func initUser() error {
 		if err := db.Create(&user).Error; err != nil {
 			return err
 		}
-		// ПИШЕМ ID ПОСЛЕ СОЗДАНИЯ
 		log.Printf("[DB] Created new user: %s (ID: %d)", user.Username, user.Id)
 	} else {
-		// ПОЛУЧАЕМ ID СУЩЕСТВУЮЩЕГО
 		if err := db.First(&user).Error; err == nil {
 			log.Printf("[DB] Using existing user: %s (ID: %d)", user.Username, user.Id)
 		}
@@ -63,7 +59,6 @@ func initUser() error {
 			if err := db.Create(newToken).Error; err != nil {
 				log.Printf("[DB] Error creating token: %v", err)
 			} else {
-				// ПИШЕМ ID ПРИ ПРИВЯЗКЕ ТОКЕНА
 				log.Printf("[DB] Token '%s' successfully linked to User ID: %d", tokenStr, user.Id)
 			}
 		} else {
