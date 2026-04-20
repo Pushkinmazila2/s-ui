@@ -40,7 +40,7 @@ RUN if [ "$TARGETARCH" = "arm" ]; then export GOARM=7; [ "$TARGETVARIANT" = "v6"
 
 FROM alpine
 LABEL org.opencontainers.image.authors="alireza7@gmail.com"
-ENV TZ=Asia/Tehran
+ENV TZ=Europe/Moscow
 WORKDIR /app
 RUN set -ex && apk add --no-cache --upgrade bash tzdata ca-certificates nftables
 COPY --from=backend-builder /app/sui /app/libcronet.so /app/
