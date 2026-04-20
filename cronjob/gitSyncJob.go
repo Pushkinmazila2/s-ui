@@ -38,3 +38,27 @@ func (j *GitSyncJob) Run() {
 		logger.Error("Git sync job failed:", err)
 	}
 }
+
+type GitSyncCheckJob struct {
+	gitSyncService service.GitSyncService
+}
+
+func NewGitSyncCheckJob() *GitSyncCheckJob {
+	return &GitSyncCheckJob{}
+}
+
+func (j *GitSyncCheckJob) Run() {
+	config, err := j.gitSyncService.GetConfig()
+	if err != nil {
+		return
+	}
+
+	if !config.Enable || !config.SyncConfig {
+		return
+	}
+
+	err = j.gitSyncService.CheckAndPullIfNewer()
+	if err != nil {
+		logger.Debug("Git sync check:", err)
+	}
+}

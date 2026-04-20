@@ -118,14 +118,27 @@ Header: Token: your_api_token
 
 ### Automatic Synchronization
 
-When `autoSync` is enabled, the system will automatically push changes to Git at the interval specified in `syncInterval`.
+When `autoSync` is enabled, the system works as follows:
+
+1. **Push on changes** - automatically pushes configuration to Git on any database changes
+2. **Periodic push** - additionally pushes data every hour (for DB sync)
+3. **Check for updates** - checks Git version every 30 seconds
+4. **Automatic pull** - if Git version is newer than local, automatically downloads and applies configuration
+
+This ensures configuration synchronization between multiple S-UI servers using the same repository.
 
 ## Repository Files
 
-After synchronization, the following files will appear in the repository:
+After synchronization, the following files will appear in a folder named after your hostname:
 
-- `singbox-config.json` - SingBox configuration in raw format
-- `s-ui-backup.db` - database backup (without stats and changes history)
+```
+<hostname>/
+├── singbox-config.json  - SingBox configuration in raw format
+├── s-ui-backup.db       - database backup
+└── version.txt          - configuration version (timestamp)
+```
+
+Where `<hostname>` is the hostname from S-UI settings (Settings → Hostname), or "default" if not set.
 
 ## Restore
 

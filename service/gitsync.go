@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 
 type GitSyncService struct {
 	ConfigService
+	SettingService
 }
 
 type GitProvider interface {
@@ -574,6 +576,18 @@ func (p *GiteaProvider) DeleteFile(path string, message string) error {
 	return nil
 }
 
+func (s *GitSyncService) getHostname() (string, error) {
+	hostname, err := s.SettingService.GetSetting("hostname")
+	if err != nil || hostname == "" {
+		hostname = "default"
+	}
+	return hostname, nil
+}
+
+func (s *GitSyncService) getConfigHash(config []byte) string {
+	return fmt.Sprintf("%x", time.Now().Unix())
+}
+
 // Sync Operations
 func (s *GitSyncService) PushToGit() error {
 	config, err := s.GetConfig()
@@ -586,18 +600,29 @@ func (s *GitSyncService) PushToGit() error {
 		return err
 	}
 	
+	hostname, err := s.getHostname()
+	if err != nil {
+		hostname = "default"
+	}
+	
 	timestamp := time.Now().Format("2006-01-02 15:04:05")
+	version := time.Now().Unix()
 	
 	if config.SyncConfig {
 		rawConfig, err := s.ConfigService.GetConfig("")
 		if err != nil {
 			logger.Error("Failed to get SingBox config:", err)
 		} else {
-			err = provider.CreateOrUpdateFile("singbox-config.json", *rawConfig, "Update SingBox config - "+timestamp)
+			configPath := fmt.Sprintf("%s/singbox-config.json", hostname)
+			err = provider.CreateOrUpdateFile(configPath, *rawConfig, "Update SingBox config - "+timestamp)
 			if err != nil {
 				logger.Error("Failed to push SingBox config:", err)
 			} else {
 				logger.Info("SingBox config pushed to Git")
+				
+				versionPath := fmt.Sprintf("%s/version.txt", hostname)
+				versionContent := []byte(fmt.Sprintf("%d", version))
+				provider.CreateOrUpdateFile(versionPath, versionContent, "Update version - "+timestamp)
 			}
 		}
 	}
@@ -607,7 +632,8 @@ func (s *GitSyncService) PushToGit() error {
 		if err != nil {
 			logger.Error("Failed to get database:", err)
 		} else {
-			err = provider.CreateOrUpdateFile("s-ui-backup.db", db, "Update database backup - "+timestamp)
+			dbPath := fmt.Sprintf("%s/s-ui-backup.db", hostname)
+			err = provider.CreateOrUpdateFile(dbPath, db, "Update database backup - "+timestamp)
 			if err != nil {
 				logger.Error("Failed to push database:", err)
 			} else {
@@ -634,17 +660,36 @@ func (s *GitSyncService) PullFromGit() error {
 		return err
 	}
 	
+	hostname, err := s.getHostname()
+	if err != nil {
+		hostname = "default"
+	}
+	
 	if config.SyncConfig {
-		content, err := provider.GetFile("singbox-config.json")
+		configPath := fmt.Sprintf("%s/singbox-config.json", hostname)
+		content, err := provider.GetFile(configPath)
 		if err != nil {
 			logger.Error("Failed to pull SingBox config:", err)
 		} else if content != nil {
 			logger.Info("SingBox config pulled from Git")
+			
+			db := database.GetDB()
+			tx := db.Begin()
+			err = s.SettingService.SaveConfig(tx, content)
+			if err != nil {
+				tx.Rollback()
+				logger.Error("Failed to save pulled config:", err)
+			} else {
+				tx.Commit()
+				go func() { _ = s.ConfigService.RestartCore() }()
+				logger.Info("Config applied and core restarted")
+			}
 		}
 	}
 	
 	if config.SyncDb {
-		content, err := provider.GetFile("s-ui-backup.db")
+		dbPath := fmt.Sprintf("%s/s-ui-backup.db", hostname)
+		content, err := provider.GetFile(dbPath)
 		if err != nil {
 			logger.Error("Failed to pull database:", err)
 		} else if content != nil {
@@ -655,6 +700,41 @@ func (s *GitSyncService) PullFromGit() error {
 	db := database.GetDB()
 	config.LastSync = time.Now().Unix()
 	db.Save(config)
+	
+	return nil
+}
+
+func (s *GitSyncService) CheckAndPullIfNewer() error {
+	config, err := s.GetConfig()
+	if err != nil || !config.Enable || !config.SyncConfig {
+		return err
+	}
+	
+	provider, err := s.getProvider(config)
+	if err != nil {
+		return err
+	}
+	
+	hostname, err := s.getHostname()
+	if err != nil {
+		hostname = "default"
+	}
+	
+	versionPath := fmt.Sprintf("%s/version.txt", hostname)
+	remoteVersion, err := provider.GetFile(versionPath)
+	if err != nil || remoteVersion == nil {
+		return err
+	}
+	
+	remoteVersionInt, err := strconv.ParseInt(strings.TrimSpace(string(remoteVersion)), 10, 64)
+	if err != nil {
+		return err
+	}
+	
+	if config.LastSync < remoteVersionInt {
+		logger.Info("Remote config is newer, pulling...")
+		return s.PullFromGit()
+	}
 	
 	return nil
 }
