@@ -35,16 +35,34 @@
 
 ### 3. Настройка в S-UI
 
+#### Создание API токена (рекомендуется)
+
+1. Войдите в веб-интерфейс S-UI
+2. Перейдите в Настройки → API Tokens
+3. Создайте новый токен
+4. Скопируйте токен
+
 #### API Endpoints
+
+Доступны два варианта аутентификации:
+- **`/apiv2/`** - использует API токены (рекомендуется для автоматизации)
+- **`/app/api/`** - использует session cookies (для веб-интерфейса)
 
 **Получить конфигурацию:**
 ```
+GET /apiv2/gitSyncConfig
+Header: Token: your_api_token
+
+или
+
 GET /app/api/gitSyncConfig
+Cookie: session=...
 ```
 
 **Сохранить конфигурацию:**
 ```
-POST /app/api/gitSyncConfig
+POST /apiv2/gitSyncConfig
+Header: Token: your_api_token
 Content-Type: application/json
 
 {
@@ -73,26 +91,30 @@ Content-Type: application/json
 
 **Отправить данные в Git:**
 ```
-POST /app/api/gitSyncPush
+POST /apiv2/gitSyncPush
+Header: Token: your_api_token
 ```
 
 **Получить данные из Git:**
 ```
-POST /app/api/gitSyncPull
+POST /apiv2/gitSyncPull
+Header: Token: your_api_token
 ```
 
 **Проверить подключение:**
 ```
-POST /app/api/gitSyncTest
+POST /apiv2/gitSyncTest
+Header: Token: your_api_token
 ```
 
 ## Использование
 
 ### Ручная синхронизация
 
-1. Настройте параметры Git синхронизации через API
-2. Вызовите `/app/api/gitSyncPush` для отправки данных в Git
-3. Вызовите `/app/api/gitSyncPull` для получения данных из Git
+1. Создайте API токен в S-UI (Settings → API Tokens)
+2. Настройте параметры Git синхронизации через API
+3. Вызовите `/apiv2/gitSyncPush` для отправки данных в Git
+4. Вызовите `/apiv2/gitSyncPull` для получения данных из Git
 
 ### Автоматическая синхронизация
 
@@ -126,10 +148,12 @@ db: <файл базы данных>
 
 ⚠️ **Важно:**
 - Используйте **приватные** репозитории
-- Храните токены в безопасности
+- Храните токены в безопасности (как API токены S-UI, так и Git токены)
 - Не публикуйте токены в открытом доступе
 - Регулярно обновляйте токены доступа
 - Используйте токены с минимально необходимыми правами
+- Устанавливайте срок действия для API токенов
+- Для автоматизации используйте API токены вместо session cookies
 
 ## Примеры URL репозиториев
 

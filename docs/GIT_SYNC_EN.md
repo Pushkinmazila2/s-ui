@@ -35,16 +35,34 @@ Create a new private repository for storing configurations and backups.
 
 ### 3. Configure in S-UI
 
+#### Create API Token (recommended)
+
+1. Login to S-UI web interface
+2. Go to Settings → API Tokens
+3. Create a new token
+4. Copy the token
+
 #### API Endpoints
+
+Two authentication options available:
+- **`/apiv2/`** - uses API tokens (recommended for automation)
+- **`/app/api/`** - uses session cookies (for web interface)
 
 **Get configuration:**
 ```
+GET /apiv2/gitSyncConfig
+Header: Token: your_api_token
+
+or
+
 GET /app/api/gitSyncConfig
+Cookie: session=...
 ```
 
 **Save configuration:**
 ```
-POST /app/api/gitSyncConfig
+POST /apiv2/gitSyncConfig
+Header: Token: your_api_token
 Content-Type: application/json
 
 {
@@ -73,26 +91,30 @@ Content-Type: application/json
 
 **Push to Git:**
 ```
-POST /app/api/gitSyncPush
+POST /apiv2/gitSyncPush
+Header: Token: your_api_token
 ```
 
 **Pull from Git:**
 ```
-POST /app/api/gitSyncPull
+POST /apiv2/gitSyncPull
+Header: Token: your_api_token
 ```
 
 **Test connection:**
 ```
-POST /app/api/gitSyncTest
+POST /apiv2/gitSyncTest
+Header: Token: your_api_token
 ```
 
 ## Usage
 
 ### Manual Synchronization
 
-1. Configure Git sync settings via API
-2. Call `/app/api/gitSyncPush` to push data to Git
-3. Call `/app/api/gitSyncPull` to pull data from Git
+1. Create an API token in S-UI (Settings → API Tokens)
+2. Configure Git sync settings via API
+3. Call `/apiv2/gitSyncPush` to push data to Git
+4. Call `/apiv2/gitSyncPull` to pull data from Git
 
 ### Automatic Synchronization
 
@@ -126,10 +148,12 @@ db: <database file>
 
 ⚠️ **Important:**
 - Use **private** repositories
-- Keep tokens secure
+- Keep tokens secure (both S-UI API tokens and Git tokens)
 - Don't publish tokens publicly
 - Regularly rotate access tokens
 - Use tokens with minimal required permissions
+- Set expiration dates for API tokens
+- Use API tokens instead of session cookies for automation
 
 ## Repository URL Examples
 

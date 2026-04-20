@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alireza0/s-ui/database"
+	"github.com/alireza0/s-ui/database/model"
 	"github.com/alireza0/s-ui/logger"
 	"github.com/alireza0/s-ui/service"
 	"github.com/alireza0/s-ui/util"
@@ -416,7 +417,7 @@ func (a *ApiService) GetGitSyncConfig(c *gin.Context) {
 }
 
 func (a *ApiService) SaveGitSyncConfig(c *gin.Context) {
-	var config database.model.GitSync
+	var config model.GitSync
 	err := c.ShouldBindJSON(&config)
 	if err != nil {
 		jsonMsg(c, "", err)
