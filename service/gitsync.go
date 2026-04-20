@@ -577,7 +577,7 @@ func (p *GiteaProvider) DeleteFile(path string, message string) error {
 }
 
 func (s *GitSyncService) getHostname() (string, error) {
-	hostname, err := s.SettingService.GetSetting("hostname")
+	hostname, err := s.SettingService.getString("hostname")
 	if err != nil || hostname == "" {
 		hostname = "default"
 	}
