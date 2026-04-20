@@ -1,0 +1,175 @@
+# Git Synchronization
+
+## Overview
+
+Git synchronization feature allows automatic backup and restore of SingBox configuration and database to Git repositories (GitHub, GitLab, Gitea).
+
+## Supported Providers
+
+- **GitHub** - https://github.com
+- **GitLab** - https://gitlab.com or self-hosted
+- **Gitea** - self-hosted
+
+## Setup
+
+### 1. Create Access Token
+
+#### GitHub
+1. Go to Settings → Developer settings → Personal access tokens → Tokens (classic)
+2. Create new token with `repo` scope (Full control of private repositories)
+3. Copy the token
+
+#### GitLab
+1. Go to Settings → Access Tokens
+2. Create token with `api`, `read_repository`, `write_repository` scopes
+3. Copy the token
+
+#### Gitea
+1. Go to Settings → Applications → Generate New Token
+2. Select `repo` scope (Full control of repositories)
+3. Copy the token
+
+### 2. Create Repository
+
+Create a new private repository for storing configurations and backups.
+
+### 3. Configure in S-UI
+
+#### API Endpoints
+
+**Get configuration:**
+```
+GET /app/api/gitSyncConfig
+```
+
+**Save configuration:**
+```
+POST /app/api/gitSyncConfig
+Content-Type: application/json
+
+{
+  "enable": true,
+  "provider": "github",
+  "repoUrl": "https://github.com/username/repo",
+  "branch": "main",
+  "token": "your_token_here",
+  "autoSync": true,
+  "syncInterval": 3600,
+  "syncConfig": true,
+  "syncDb": true
+}
+```
+
+**Parameters:**
+- `enable` - enable/disable synchronization
+- `provider` - provider: `github`, `gitlab`, `gitea`
+- `repoUrl` - repository URL
+- `branch` - branch name (default `main`)
+- `token` - access token
+- `autoSync` - automatic synchronization
+- `syncInterval` - sync interval in seconds (default 3600 = 1 hour)
+- `syncConfig` - sync SingBox configuration
+- `syncDb` - sync database
+
+**Push to Git:**
+```
+POST /app/api/gitSyncPush
+```
+
+**Pull from Git:**
+```
+POST /app/api/gitSyncPull
+```
+
+**Test connection:**
+```
+POST /app/api/gitSyncTest
+```
+
+## Usage
+
+### Manual Synchronization
+
+1. Configure Git sync settings via API
+2. Call `/app/api/gitSyncPush` to push data to Git
+3. Call `/app/api/gitSyncPull` to pull data from Git
+
+### Automatic Synchronization
+
+When `autoSync` is enabled, the system will automatically push changes to Git at the interval specified in `syncInterval`.
+
+## Repository Files
+
+After synchronization, the following files will appear in the repository:
+
+- `singbox-config.json` - SingBox configuration in raw format
+- `s-ui-backup.db` - database backup (without stats and changes history)
+
+## Restore
+
+### Restore SingBox Configuration
+
+Configuration is automatically applied when pulling from Git.
+
+### Restore Database
+
+1. Get `s-ui-backup.db` file from repository
+2. Use existing API endpoint for import:
+```
+POST /app/api/importdb
+Content-Type: multipart/form-data
+
+db: <database file>
+```
+
+## Security
+
+⚠️ **Important:**
+- Use **private** repositories
+- Keep tokens secure
+- Don't publish tokens publicly
+- Regularly rotate access tokens
+- Use tokens with minimal required permissions
+
+## Repository URL Examples
+
+**GitHub:**
+```
+https://github.com/username/repo
+https://github.com/username/repo.git
+```
+
+**GitLab:**
+```
+https://gitlab.com/username/repo
+https://gitlab.example.com/username/repo
+```
+
+**Gitea:**
+```
+https://gitea.example.com/username/repo
+```
+
+## Troubleshooting
+
+### Authentication Error
+- Verify token is correct
+- Ensure token has required permissions
+- Check token expiration
+
+### Repository Access Error
+- Verify repository exists
+- Check URL is correct
+- Ensure token has access to repository
+
+### Files Not Appearing in Repository
+- Check branch name is correct
+- Verify synchronization is enabled
+- Check application logs
+
+## Logging
+
+All sync operations are logged. Check logs for troubleshooting:
+```
+GET /app/api/logs?c=100&l=debug
+```

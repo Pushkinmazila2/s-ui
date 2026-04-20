@@ -128,7 +128,7 @@ func InitDB(dbPath string) error {
 		db.Create(&defaultOutbound)
 	}
 
-	err = db.AutoMigrate(
+		err = db.AutoMigrate(
 		&model.Setting{},
 		&model.Tls{},
 		&model.Inbound{},
@@ -140,6 +140,7 @@ func InitDB(dbPath string) error {
 		&model.Stats{},
 		&model.Client{},
 		&model.Changes{},
+		&model.GitSync{},
 	)
 	if err != nil {
 		return err
